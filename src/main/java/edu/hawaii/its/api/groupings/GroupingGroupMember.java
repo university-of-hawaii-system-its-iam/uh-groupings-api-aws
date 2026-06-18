@@ -1,0 +1,37 @@
+package edu.hawaii.its.api.groupings;
+
+import edu.hawaii.its.api.wrapper.Subject;
+
+/**
+ * When getMembers is called, GroupingGroupMember holds the information about a UH affiliate that is listed in a grouping.
+ */
+public class GroupingGroupMember extends MemberResult {
+    private String resultCode;
+    private boolean orphan;
+
+    public GroupingGroupMember(Subject subject) {
+        setUid(subject.getUid());
+        setUhUuid(subject.getUhUuid());
+        setName(subject.getName());
+        setFirstName(subject.getFirstName());
+        setLastName(subject.getLastName());
+        setOrphan(subject.isOrphan());
+        setResultCode(subject.getResultCode());
+    }
+
+    public String getResultCode() {
+        return resultCode;
+    }
+
+    public void setResultCode(String resultCode) {
+        this.resultCode = resultCode;
+    }
+
+    public boolean isOrphan() {
+        return orphan;
+    }
+
+    public void setOrphan(boolean orphan) {
+        this.orphan = orphan;
+    }
+}

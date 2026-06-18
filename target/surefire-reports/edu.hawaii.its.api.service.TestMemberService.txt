@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: edu.hawaii.its.api.service.TestMemberService
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.148 s -- in edu.hawaii.its.api.service.TestMemberService

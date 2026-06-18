@@ -1,0 +1,28 @@
+-------------------------------------------------------------------------------
+Test set: edu.hawaii.its.api.service.TestGroupingAttributeService
+-------------------------------------------------------------------------------
+Tests run: 7, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 21.94 s <<< FAILURE! -- in edu.hawaii.its.api.service.TestGroupingAttributeService
+edu.hawaii.its.api.service.TestGroupingAttributeService.changeOptOutStatusTest -- Time elapsed: 4.607 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw an exception if current user is an admin but not an owner.
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:42)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:143)
+	at edu.hawaii.its.api.service.TestGroupingAttributeService.changeOptOutStatusTest(TestGroupingAttributeService.java:332)
+
+edu.hawaii.its.api.service.TestGroupingAttributeService.changeGroupAttributeStatus -- Time elapsed: 3.935 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw an exception if current user is an admin but not an owner.
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:42)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:143)
+	at edu.hawaii.its.api.service.TestGroupingAttributeService.changeGroupAttributeStatus(TestGroupingAttributeService.java:464)
+
+edu.hawaii.its.api.service.TestGroupingAttributeService.updateDescriptionTest -- Time elapsed: 3.613 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw an exception if current user is an admin but not an owner.
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:42)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:143)
+	at edu.hawaii.its.api.service.TestGroupingAttributeService.updateDescriptionTest(TestGroupingAttributeService.java:536)
+
+edu.hawaii.its.api.service.TestGroupingAttributeService.changeOptInStatusTest -- Time elapsed: 4.171 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should not throw an exception if current user is an admin but not an owner.
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:42)
+	at org.junit.jupiter.api.Assertions.fail(Assertions.java:143)
+	at edu.hawaii.its.api.service.TestGroupingAttributeService.changeOptInStatusTest(TestGroupingAttributeService.java:168)
+

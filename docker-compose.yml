@@ -1,0 +1,29 @@
+# docker-compose.yml
+
+services:
+  uh-groupings-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uh-groupings-api
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=localhost
+      - SPRING_CONFIG_IMPORT=optional:file:/app/config/uh-groupings-api-overrides.properties
+      - JAVA_OPTS=-Xmx1g -Xms512m
+    volumes:
+      - ${HOME}/.${USER}-conf/uh-groupings-api-overrides.properties:/app/config/uh-groupings-api-overrides.properties:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/uhgroupingsapi/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - groupings-network
+
+networks:
+  groupings-network:
+    driver: bridge
