@@ -14,15 +14,12 @@ Parameters:
   
   Environment:
     Type: String
-    Default: sandbox
+    Default: sandbx
     AllowedValues:
-      - sandbox
+      - sandbx
       - dev
       - test
       - prod
-      - future-dev
-      - future-test
-      - future-prod
     Description: Environment name
   
   Component:
@@ -110,7 +107,7 @@ Resources:
           - Name: AWS_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: IMAGE_REPO_NAME
-            Value: uh-groupings-api
+            Value: !Sub '${Owner}-${Project}-${Environment}'
           - Name: IMAGE_TAG
             Value: latest
       Source:
@@ -188,13 +185,13 @@ Resources:
 
   # GitHub Connection (needs manual approval in Console)
   GitHubConnection:
-    Type: AWS::CodeStarConnections::Connection
+    Type: AWS::CodeConnections::Connection
     Properties:
       ConnectionName: !Sub 'github-enterprise-${Environment}'
       ProviderType: GitHubEnterpriseServer
       HostArn: !Ref GitHubEnterpriseHost
   GitHubEnterpriseHost:
-    Type: AWS::CodeStarConnections::Host
+    Type: AWS::CodeConnections::Host
     Properties:
       Name: !Sub 'github-enterprise-${Environment}'
       ProviderEndpoint: !Ref GitHubEnterpriseUrl
@@ -240,7 +237,7 @@ Resources:
                 Resource: '*'
               - Effect: Allow
                 Action:
-                  - codestar-connections:UseConnection
+                  - codeconnections:UseConnection
                 Resource: !Ref GitHubConnection
 
   # IAM Role for CodeBuild
