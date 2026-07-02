@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: edu.hawaii.its.api.groupings.GroupingRemoveResultsTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in edu.hawaii.its.api.groupings.GroupingRemoveResultsTest

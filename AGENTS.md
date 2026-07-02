@@ -147,13 +147,13 @@ The API itself needs Grouper service-account credentials, a JWT signing key, and
 The Spring property names are identical in both environments; only the source mechanism differs.
 
 ### AWS account credentials (used by developers who deploy)
-Only developers who run `make aws-setup` or other AWS Make targets need IAM access keys to authenticate **to** AWS. These are **never** stored on disk in plaintext, and they have nothing to do with application secrets — they only authorize a developer's CLI to call AWS APIs. The project uses [`aws-vault`](https://github.com/99designs/aws-vault):
+Only developers who run `make aws-setup` or other AWS Make targets need AWS credentials to authenticate **to** AWS. These are **never** stored on disk in plaintext, and they have nothing to do with application secrets — they only authorize a developer's CLI to call AWS APIs. The project uses **IAM Identity Center (SSO) temporary credentials** exclusively:
 
-- `make aws-vault-setup` (one time per developer) prompts for an Access Key ID and Secret Access Key, stores them in the macOS Keychain under a profile named `uh-groupings`.
-- Each AWS Make target is wrapped: `aws-vault exec uh-groupings -- make aws-setup`. aws-vault releases credentials only as ephemeral environment variables for the duration of one command.
-- `docker-compose.aws.yml` does not bind-mount `~/.aws`. The AWS CLI inside the container reads `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` from the environment that aws-vault injected.
+- Any `make aws-*` target authenticates on demand via `aws/lib-auth.sh`: it reads the SSO start URL / region / account ID / role from `aws/.env`, writes an SSO profile named `uh-groupings` to the developer's `~/.aws/config` if missing, and opens a browser for `aws sso login` when there's no valid session. `make aws-sso-setup` runs this explicitly; `make aws-sso-login` forces a fresh login. The AWS CLI resolves credentials from the cached SSO token in `~/.aws/sso/cache/`. Sessions expire (typically 1–12 h) and are refreshed automatically on the next target. **The AWS CLI v2 must be installed on the host** (macOS: `brew install awscli`).
 
-aws-vault does **not** hold `grouperClient.webService.password`, `jwt.secret.key`, or any other application-runtime value. Those go in AWS Secrets Manager (above) and are read by the ECS task at startup, not by aws-vault on a developer's laptop.
+The `make aws-*` targets run the AWS CLI directly on the host; `make aws-setup` additionally needs Docker running to build and push the application image to ECR.
+
+IAM Identity Center does not hold `grouperClient.webService.password`, `jwt.secret.key`, or any other application-runtime value. Those go in AWS Secrets Manager (above) and are read by the ECS task at startup, not by the developer credential mechanism on a developer's laptop.
 
 See [`docs/SECRETS.md`](docs/SECRETS.md) for the full reference, including the list of Spring properties classified as secrets vs settings.
 

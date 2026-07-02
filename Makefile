@@ -14,44 +14,78 @@ define check_docker
 	fi
 endef
 
+# AWS CLI check — verifies the AWS CLI v2 is installed on the host.
+define check_aws
+	@if ! command -v aws >/dev/null 2>&1; then \
+		echo "Error: AWS CLI v2 is not installed."; \
+		echo "  macOS:  brew install awscli"; \
+		echo "  Linux:  https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"; \
+		exit 1; \
+	fi
+endef
+
 # --- AWS Infrastructure ---
 
-.PHONY: aws-vault-setup aws-setup aws-teardown aws-stack-events aws-service-events aws-task-status aws-logs
+.PHONY: aws-sso-setup aws-sso-login aws-check-vpc aws-setup aws-teardown aws-stack-events aws-service-events aws-task-status aws-logs aws-github-connect
 
-## Ensure aws-vault is installed and the uh-groupings profile is configured
-aws-vault-setup:
-	$(AWS_DIR)/setup-vault.sh
+## Configure the IAM Identity Center (SSO) profile and sign in. One time per
+## developer (also run any time you want to authenticate explicitly). Reads the
+## SSO values from aws/.env, writes the profile to ~/.aws/config if needed, and
+## logs in via the browser only if there is no valid session.
+aws-sso-setup:
+	$(check_aws)
+	cd $(AWS_DIR) && bash auth.sh
 
-## Run setup inside the Docker AWS CLI container
+## Force a fresh SSO login (proactive refresh, even if the session is still valid)
+aws-sso-login:
+	$(check_aws)
+	cd $(AWS_DIR) && bash auth.sh force
+
+## Create or locate a GitHub CodeConnections connection and display its ARN.
+## Run this before deploying the CodePipeline stack. Opens a browser to complete
+## the OAuth handshake if needed, then polls until the connection is AVAILABLE.
+aws-github-connect:
+	$(check_aws)
+	cd $(AWS_DIR) && bash github-connect.sh
+
+## Validate that the VPC in aws/.env meets project requirements
+aws-check-vpc:
+	$(check_aws)
+	cd $(AWS_DIR) && bash check-vpc.sh
+
+## Provision AWS infrastructure (needs the AWS CLI plus Docker to build/push the image)
 aws-setup:
+	$(check_aws)
 	$(check_docker)
-	cd $(AWS_DIR) && docker-compose -f docker-compose.aws.yml run --rm aws-cli bash setup.sh
+	cd $(AWS_DIR) && bash setup.sh
 
 ## Delete all CloudFormation stacks (prompts for confirmation)
 aws-teardown:
-	$(check_docker)
+	$(check_aws)
 	@echo "WARNING: This will delete all AWS resources for the project."
 	@read -r -p "Are you sure? (y/n) " confirm && [ "$$confirm" = "y" ] || exit 1
-	cd $(AWS_DIR) && docker-compose -f docker-compose.aws.yml run --rm aws-cli bash -c ' \
+	cd $(AWS_DIR) && \
 		source .env && \
 		aws cloudformation delete-stack --stack-name "$${AWS_PROJECT_ID}-pipeline-$${AWS_ENV}" --region "$${AWS_REGION}" && \
 		aws cloudformation delete-stack --stack-name "$${AWS_PROJECT_ID}-ecs-$${AWS_ENV}" --region "$${AWS_REGION}" && \
-		aws cloudformation delete-stack --stack-name "$${AWS_PROJECT_ID}-ecr-$${AWS_ENV}" --region "$${AWS_REGION}"'
+		aws cloudformation wait stack-delete-complete --stack-name "$${AWS_PROJECT_ID}-ecs-$${AWS_ENV}" --region "$${AWS_REGION}" && \
+		aws cloudformation delete-stack --stack-name "$${AWS_PROJECT_ID}-ecr-$${AWS_ENV}" --region "$${AWS_REGION}" && \
+		aws cloudformation delete-stack --stack-name "$${AWS_PROJECT_ID}-vpc-$${AWS_ENV}" --region "$${AWS_REGION}"
 
 ## Show CloudFormation events that failed during stack creation
 aws-stack-events:
-	$(check_docker)
-	cd $(AWS_DIR) && docker-compose -f docker-compose.aws.yml run --rm aws-cli bash -c ' \
+	$(check_aws)
+	cd $(AWS_DIR) && \
 		source .env && \
 		aws cloudformation describe-stack-events \
 			--stack-name "$${AWS_PROJECT_ID}-ecs-$${AWS_ENV}" \
 			--query "StackEvents[?ResourceStatus==\`CREATE_FAILED\`]" \
-			--region "$${AWS_REGION}"'
+			--region "$${AWS_REGION}"
 
 ## Show the most recent ECS service events
 aws-service-events:
-	$(check_docker)
-	cd $(AWS_DIR) && docker-compose -f docker-compose.aws.yml run --rm aws-cli bash -c ' \
+	$(check_aws)
+	cd $(AWS_DIR) && \
 		source .env && \
 		CLUSTER=$$(aws cloudformation describe-stacks \
 			--stack-name "$${AWS_PROJECT_ID}-ecs-$${AWS_ENV}" \
@@ -65,12 +99,12 @@ aws-service-events:
 			--cluster "$${CLUSTER}" \
 			--services "$${SERVICE}" \
 			--query "services[0].events[0:10]" \
-			--region "$${AWS_REGION}"'
+			--region "$${AWS_REGION}"
 
 ## Show the stopped reason for the most recent ECS task
 aws-task-status:
-	$(check_docker)
-	cd $(AWS_DIR) && docker-compose -f docker-compose.aws.yml run --rm aws-cli bash -c ' \
+	$(check_aws)
+	cd $(AWS_DIR) && \
 		source .env && \
 		CLUSTER=$$(aws cloudformation describe-stacks \
 			--stack-name "$${AWS_PROJECT_ID}-ecs-$${AWS_ENV}" \
@@ -84,14 +118,14 @@ aws-task-status:
 			--cluster "$${CLUSTER}" \
 			--tasks "$${TASK}" \
 			--query "tasks[0].{StoppedReason:stoppedReason,Containers:containers[*].{Name:name,Reason:reason}}" \
-			--region "$${AWS_REGION}"'
+			--region "$${AWS_REGION}"
 
 ## Tail CloudWatch logs for the API
 aws-logs:
-	$(check_docker)
-	cd $(AWS_DIR) && docker-compose -f docker-compose.aws.yml run --rm aws-cli bash -c ' \
+	$(check_aws)
+	cd $(AWS_DIR) && \
 		source .env && \
-		aws logs tail "/ecs/$${AWS_PROJECT_ID}" --follow --region "$${AWS_REGION}"'
+		aws logs tail "/ecs/$${AWS_PROJECT_ID}" --follow --region "$${AWS_REGION}"
 
 # --- Application ---
 
@@ -151,14 +185,26 @@ docker-up:
 help:
 	@echo "UH Groupings API - Available targets:"
 	@echo ""
-	@echo "  AWS targets must be wrapped with aws-vault for credentials, e.g.:"
-	@echo "    aws-vault exec uh-groupings -- make aws-setup"
+	@echo "  AWS targets authenticate via IAM Identity Center (SSO). Requires the"
+	@echo "  AWS CLI v2 installed on your host (macOS: brew install awscli)."
+	@echo "  Any aws-* target signs you in automatically (browser) when needed;"
+	@echo "  set the SSO values in aws/.env first."
+	@echo ""
+	@echo "  Per command, set the profile:"
+	@echo "    AWS_PROFILE=uh-groupings make aws-setup"
+	@echo "  Or once per shell:"
+	@echo "    export AWS_PROFILE=uh-groupings"
+	@echo "    make aws-setup"
+	@echo ""
 	@echo "  See aws/README.md for details."
 	@echo ""
 	@echo "  AWS Infrastructure:"
-	@echo "    aws-vault-setup    Install aws-vault and configure profile (one-time, no wrapper)"
-	@echo "    aws-setup          Run interactive AWS setup (Docker)"
-	@echo "    aws-teardown       Delete all AWS CloudFormation stacks (Docker)"
+	@echo "    aws-sso-setup      Configure SSO profile + sign in (also auto-runs on demand)"
+	@echo "    aws-sso-login      Force a fresh SSO login (proactive refresh)"
+	@echo "    aws-check-vpc      Validate VPC meets project requirements"
+	@echo "    aws-github-connect Create/locate a GitHub connection + display ARN for aws/.env"
+	@echo "    aws-setup          Provision AWS infrastructure"
+	@echo "    aws-teardown       Delete all AWS CloudFormation stacks"
 	@echo ""
 	@echo "  AWS Troubleshooting:"
 	@echo "    aws-stack-events   Show CloudFormation CREATE_FAILED events"

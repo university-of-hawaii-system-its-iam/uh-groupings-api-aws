@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: edu.hawaii.its.api.service.TestSubjectService
--------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.239 s -- in edu.hawaii.its.api.service.TestSubjectService

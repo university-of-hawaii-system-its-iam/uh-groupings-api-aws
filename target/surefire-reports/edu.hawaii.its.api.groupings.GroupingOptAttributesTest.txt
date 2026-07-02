@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: edu.hawaii.its.api.groupings.GroupingOptAttributesTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.394 s -- in edu.hawaii.its.api.groupings.GroupingOptAttributesTest

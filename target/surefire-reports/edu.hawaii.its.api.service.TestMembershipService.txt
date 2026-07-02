@@ -1,9 +1,0 @@
--------------------------------------------------------------------------------
-Test set: edu.hawaii.its.api.service.TestMembershipService
--------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 28.73 s <<< FAILURE! -- in edu.hawaii.its.api.service.TestMembershipService
-edu.hawaii.its.api.service.TestMembershipService.manageSubjectResultsTest -- Time elapsed: 2.736 s <<< ERROR!
-edu.hawaii.its.api.exception.AccessDeniedException: Insufficient Privileges
-	at edu.hawaii.its.api.service.MembershipService.manageSubjectResults(MembershipService.java:114)
-	at edu.hawaii.its.api.service.TestMembershipService.manageSubjectResultsTest(TestMembershipService.java:112)
-
